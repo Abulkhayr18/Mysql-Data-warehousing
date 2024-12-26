@@ -1,0 +1,107 @@
+-- Create a database 
+Create DATABASE Dimensional_modeling_DB;
+
+--Use database
+USE Dimensional_modeling_DB;
+
+--Create dimensional table: customer
+CREATE TABLE DIM_CUSTOMER (
+             CUSTOMER_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+             CUSTOMER_NAME VARCHAR(100) NOT NULL,
+             EMAIL VARCHAR(100),
+             COUNTRY VARCHAR(50),
+             CREATED_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CREATE DIMENSIONAL TABLE: PRODUCT
+CREATE TABLE DIM_PRODUCT (
+             PRODUCT_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+             PRODUCT_NAME VARCHAR(100) NOT NULL,
+             PRICE DECIMAL(10, 2)
+);
+
+-- CREATE DIMENSIONAL TABLE DATE
+CREATE TABLE DIM_DATE (
+             DATE_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+             FULL_DATE  DATE NOT NULL,
+             DAY_OF_WEEK VARCHAR(20),
+             MONTH VARCHAR(20),
+             YEAR INT
+);
+
+-- CREATE FACT TABLE
+CREATE TABLE FACT_SALES (
+             SALE_ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+             CUSTOMER_ID INT NOT NULL,
+             PRODUCT_ID INT NOT NULL,
+             DATE_ID INT NOT NULL,
+             QUANTITY INT,
+             TOTAL_AMOUNT DECIMAL (10, 2),
+             FOREIGN KEY (CUSTOMER_ID) REFERENCES DIM_CUSTOMER(CUSTOMER_ID),
+             FOREIGN KEY (PRODUCT_ID) REFERENCES DIM_PRODUCT(PRODUCT_ID),
+             FOREIGN KEY (DATE_ID)    REFERENCES DIM_DATE(DATE_ID)
+);
+
+-- Loading Data Into Tables
+ INSERT INTO DIM_CUSTOMER (CUSTOMER_NAME, EMAIL, COUNTRY)
+ VALUES ('Abulkhayr Lawal', 'abulkhayl45@gmail.com', 'Nigeria'),
+ ('Abdussamad lawal', 'abdussamadlawal7@gmail.com', 'Nigeria'), ('Ummulkhayr', 'ummulkhay67@gmail.com', 'Nigeria'),
+ ('Firdausi', 'FirdausiL90@gmail.com', 'Nigeria'), ('Hisham', 'HshamD4@gmail.com', 'Chad');
+
+-- Load Data Into DIM_Product
+ INSERT INTO DIM_PRODUCT (PRODUCT_NAME, PRICE)
+ VALUES ('Converse', '650'),
+ ('Samba', '1200'), 
+ ('Air Jordans', '780'), 
+ ('Nike Airforce', '400'), 
+ ('Penflow', '670');
+ 
+
+-- QUERY FOR ANALYSIS
+ -- JOIN FACT AND DIMENSION TABLES FOR REPORTING
+ SELECT
+       S.SALE_ID,
+       C.CUSTOMER_NAME,
+       P.PRODUCT_NAME
+FROM 
+     FACT_SALES S    
+     JOIN DIM_CUSTOMER C ON S.CUSTOMER_ID = C.CUSTOMER_ID 
+     JOIN DIM_PRODUCT P ON S.PRODUCT_ID = P.PRODUCT_ID
+     JOIN DIM_DATE D ON S.DATE_ID = D.DATE_ID
+ORDER BY D.FULL_DATE;
+
+-- CREATE AN INDEX
+CREATE INDEX idx_CUSTOMER_ID
+ON FACT_SALES (CUSTOMER_ID, PRODUCT_ID);
+
+-- SCHEDULE ETL TASKS
+DELIMETER $$
+CREATE EVENT ab_etl_event
+ON SCHEDULE EVERY 2 DAY
+DO
+BEGIN
+     LOAD DATA INFILE 'C:Users/Abulkhayr/Documents/data.csv'
+     INTO TABLE DIM_CUSTOMER
+     FIELDS TERMINATED BY ','
+     LINES TERMINATED BY  '\n';
+     
+INSERT INTO FACT_SALES (CUSTOMER_ID, PRODUCT_ID, DATE_ID, QUANTITY, TOTAL_AMOUNT)
+ SELECT
+	  CUSTOMER_ID,
+      PRODUCT_ID,
+      DATE_ID,
+      QUANTITY,
+      QUANTITY * PRICE AS TOTOAL_AMOUNT
+      FROM STAGING_SALES;
+END$$
+
+DELIMETER;
+
+
+
+
+
+
+
+       
+ 
